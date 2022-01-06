@@ -2,9 +2,9 @@
 #include <windows.h>
 #include <Psapi.h>
 
+#include <iomanip>
 #include <iostream>
 #include <string>
-#include<iomanip>  
 
 #define MAX_PROC_NUM 1024
 
@@ -123,8 +123,8 @@ unsigned int WriteOtherProcess(HANDLE hProcess, DWORD base, void* ret, int size)
     @nSize:The number of bytes to be written to the specified process.
     @lpNumberOfBytesWritten:A pointer to a variable that receives the number of bytes transferred into the specified process.
                 This parameter is optional. If lpNumberOfBytesWritten is NULL, the parameter is ignored.
-    
-    @return: If the function succeeds, the return value is nonzero.If the function fails, the return value is 0 (zero). 
+
+    @return: If the function succeeds, the return value is nonzero.If the function fails, the return value is 0 (zero).
     */
     SIZE_T ret_len = 0;
     WriteProcessMemory(hProcess, (LPVOID)base, (LPVOID)ret, size, &ret_len);
@@ -146,7 +146,7 @@ unsigned int GetAllProcessPid(DWORD* dwProcessIdentify, int sizeofdwProcessIdent
     return dwTrueBytes / sizeof(DWORD);
 }
 
-void ShowAllProcessInfo(){
+void ShowAllProcessInfo() {
     DWORD dwProcessIdentify[MAX_PROC_NUM] = {0};
 
     auto nProcessNum = GetAllProcessPid(dwProcessIdentify, MAX_PROC_NUM);
@@ -161,7 +161,7 @@ DWORD GetDesiredPidByName(string fname) {
     auto nProcessNum = GetAllProcessPid(dwProcessIdentify, MAX_PROC_NUM);
 
     for (int i = 0; i < nProcessNum; ++i) {
-        auto pid=dwProcessIdentify[i];
+        auto pid = dwProcessIdentify[i];
         auto hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
         if (hProcess == NULL) continue;
 
@@ -169,42 +169,51 @@ DWORD GetDesiredPidByName(string fname) {
         memset(moduleBaseName, 0, MAX_PROC_NUM * sizeof(char));
 
         if (GetModuleBaseName(hProcess, NULL, moduleBaseName, MAX_PROC_NUM)) {
-            if(fname == string(moduleBaseName)){
-                CloseHandle(hProcess);  
+            if (fname == string(moduleBaseName)) {
+                CloseHandle(hProcess);
                 return pid;
             }
         }
-        if(hProcess!=NULL)CloseHandle(hProcess);        
+        if (hProcess != NULL) CloseHandle(hProcess);
     }
     return 0;
 }
 
-void TestWinChange(string fname){
-    auto pid=GetDesiredPidByName(fname);
+void TestWinChange(string fname) {
+    auto pid = GetDesiredPidByName(fname);
 
     auto hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
-    if(hProcess==NULL){
-        cout<<"Can't find proc: "<<fname<<endl;
+    if (hProcess == NULL) {
+        cout << "Can't find proc: " << fname << endl;
         return;
     }
-    cout<<"Find Process: "<<fname<<" PID: "<<pid<<endl;
-    unsigned int kep=0;
+    cout << "Find Process: " << fname << " PID: " << pid << endl;
+    unsigned int kep = 0;
 
-    DWORD base=0x006a9ec0;
-    int len_once=sizeof(kep);
+    DWORD base = 0x61fe1c;
+    int len_once = sizeof(kep);
 
-    if(ReadOtherProcess(hProcess, base, &kep, 4)){
-        cout<<"ReadBase: "<<std::hex<<base;
-        cout<<": "<<std::dec<< kep<<endl;
-    }else{
+    if (ReadOtherProcess(hProcess, base, &kep, 4)) {
+        cout << "ReadBase: " << std::hex << base;
+        cout << ": " << std::dec << kep << endl;
+    } else {
         //〖299〗-仅完成部分的 ReadProcessMemoty 或 WriteProcessMemory 请求。
-        cout<<"Error Reading Process: "<<fname<<" Error: "<< GetLastError()<<  endl;
+        cout << "Error Reading Process: " << fname << " Error: " << GetLastError() << endl;
     }
 
-    if(hProcess!=NULL) CloseHandle(hProcess);  
+    kep = 0;
+    if (WriteOtherProcess(hProcess, base, &kep, 4)) {
+        cout << "WriteBase: " << std::hex << base;
+        cout << ": " << std::dec << kep << endl;
+    } else {
+        cout << "Error Writing Process: " << fname << " Error: " << GetLastError() << endl;
+    }
+
+    if (hProcess != NULL) CloseHandle(hProcess);
 }
 
 int main() {
+    cout << "Starting:" << endl;
     TestWinChange("test_win.exe");
 
     return 0;
