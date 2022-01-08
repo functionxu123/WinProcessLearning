@@ -51,7 +51,7 @@ void ShowProcessInfo(DWORD pid) {
     ERROR_ACCESS_DENIED because their access restrictions prevent user-level
     code from opening them
     */
-    cout << "Pid: " << pid;
+    cout << "\nPid: " << pid;
 
     auto hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
     if (hProcess == NULL) return;
@@ -190,31 +190,42 @@ void TestWinChange(string fname) {
     cout << "Find Process: " << fname << " PID: " << pid << endl;
     unsigned int kep = 0;
 
-    DWORD base = 0x61fe1c;
-    int len_once = sizeof(kep);
+    DWORD base = 0x006426b0;
 
-    if (ReadOtherProcess(hProcess, base, &kep, 4)) {
-        cout << "ReadBase: " << std::hex << base;
-        cout << ": " << std::dec << kep << endl;
-    } else {
-        //〖299〗-仅完成部分的 ReadProcessMemoty 或 WriteProcessMemory 请求。
-        cout << "Error Reading Process: " << fname << " Error: " << GetLastError() << endl;
-    }
+    auto addrDive = [&](DWORD base) -> DWORD {
+        DWORD kep=0;
+        if (ReadOtherProcess(hProcess, base, &kep, sizeof(kep))) {
+            cout << "ReadBase: 0x" << std::hex << base;
+            cout << ": 0x" << std::hex << kep << endl;
+        } else {
+            //〖299〗-仅完成部分的 ReadProcessMemoty 或 WriteProcessMemory 请求。
+            cout << "Error Reading Process: " << fname << " Error: " << GetLastError() << endl;
+        }
+        return kep;
+    };
 
-    kep = 0;
-    if (WriteOtherProcess(hProcess, base, &kep, 4)) {
-        cout << "WriteBase: " << std::hex << base;
-        cout << ": " << std::dec << kep << endl;
-    } else {
-        cout << "Error Writing Process: " << fname << " Error: " << GetLastError() << endl;
-    }
+    base=addrDive(base);
+    base+=0;
+    base=addrDive(base);
+    base+=0;
+
+    addrDive(base);
+
+    // kep = 0;
+    // if (WriteOtherProcess(hProcess, base, &kep, 4)) {
+    //     cout << "WriteBase: " << std::hex << base;
+    //     cout << ": " << std::dec << kep << endl;
+    // } else {
+    //     cout << "Error Writing Process: " << fname << " Error: " << GetLastError() << endl;
+    // }
 
     if (hProcess != NULL) CloseHandle(hProcess);
 }
 
 int main() {
     cout << "Starting:" << endl;
-    TestWinChange("test_win.exe");
-
+    string pvz="PlantsVsZombies.exe"
+    //TestWinChange(pvz);
+    ShowAllProcessInfo();
     return 0;
 }
